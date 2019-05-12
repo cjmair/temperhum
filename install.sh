@@ -1,7 +1,8 @@
 #!/bin/bash
 
 echo
-echo This script install the prerequisits for temperhum.py on a Raspberry Pi and copies it to /usr/local/bin
+echo This script installs the prerequisits for temperhum.py on a Raspberry Pi and copies
+echo temperhum.py to /usr/local/bin
 read -p "Continue [Y/N]? " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]
