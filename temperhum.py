@@ -1,10 +1,26 @@
 #!/usr/bin/env python3
 
+#Reads the temperature and humidity from a PCSensor, TEMPerHum, USB sensor
+#Copyright (C) 2019  Colin J Mair
+
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#any later version.
+
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with this program.  If not, see <http://gnu.org/licenses/gpl.html>
+
 import usb.core
 import usb.util
 import sys
 
-VERSION = "1.2"
+VERSION = "1.5"
 
 Temperhum_Vendor = 0x413d
 Temperhum_Product = 0x2107
@@ -12,19 +28,45 @@ Temperhum_Interface = 1
 Temperhum_ID = hex(Temperhum_Vendor) + ':' + hex(Temperhum_Product)
 Temperhum_ID = Temperhum_ID.replace( '0x', '')
 
-params = [x.lower() for x in sys.argv]
+# Function to return a string of hex character representing a byte array
+
+def byte_array_to_hex_string( byte_array ):
+    array_size = len(byte_array)
+    if array_size == 0:
+        s = ""
+    else:
+        s = ""         
+        for var in list(range(array_size)):
+            b = hex(byte_array[var])
+            b = b.replace( "0x", "")
+            if len(b) == 1:
+                b = "0" + b
+            b = "0x" + b
+            s = s + b + " "
+    return (s.strip())
+
+# The temperature is a 16 bit signed integer, this function converts it to signed decimal
+
+def twos_complement(value,bits):
+#    value = int(hexstr,16)
+    if value & (1 << (bits-1)):
+        value -= 1 << bits
+    return value
 
 # Check the parameters passed
+
+params = [x.lower() for x in sys.argv]
 
 if "--help" in params:
     print ("")
     print ("Usage: temperhum.py [OPTION]")
-    print ("Reads the temperature and humidity from a PCSensor, TEMPerHum, USB sensor")
+    print ("Reads the temperature and humidity from a PCSensor, TEMPerHum, USB sensor, USB ID", Temperhum_ID)
     print ("")
     print ("--help          shows this :-)")
     print ("--version       displays version information and exits")
     print ("--f             output temperature in Fahrenheit, default is Celsius")
     print ("--nosymbols     do not show C, F or %")
+    print ("--raw           include the raw data from the sensor in the output, as hex bytes")
     print ("--debug         turn on debugging output")
     print ("--reattach      if the usb device is attached to a kernel driver, default is to detach it, and leave it that way")
     print ("                this option forces a reattach to the kernel driver on exit")
@@ -34,6 +76,10 @@ if "--help" in params:
 if "--version" in params:
     print ("")
     print ("temperhum.py  version", VERSION)
+    print ("Copyright (C) 2019 Colin J Mair")
+    print ("License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>")
+    print ("This is free software: you are free to change and redistribute it")
+    print ("There is NO WARRANTY, to the extent permitted by law")
     print ("")
     exit(0)
 
@@ -57,6 +103,11 @@ if "--reattach" in params:
 else:
     REATTACH = False
 
+if "--raw" in params:
+    RAW = True
+else:
+    RAW = False
+
 
 # If debug is true tell the user
 
@@ -71,7 +122,7 @@ device = usb.core.find(idVendor = Temperhum_Vendor, idProduct = Temperhum_Produc
 
 if device is None:
     print ("Error: Device", Temperhum_ID, "not found")
-    exit(1)
+    exit(0)
 else:
     if DEBUG == True:
         print ("Found Device ID", Temperhum_ID)
@@ -95,7 +146,7 @@ if device.is_kernel_driver_active(1):
 
     if result != None:
         print ("Error: unable to detach kernal driver from device")
-        exit(2)
+        exit(0)
     else:
         if DEBUG == True:
             print ("Kernal driver detached ok")
@@ -111,7 +162,7 @@ if DEBUG == True:
 result = usb.util.claim_interface(device, Temperhum_Interface)
 if result != None:
     print ("Error: unable to claim the interface")
-    exit(3)
+    exit(0)
 else:
     if DEBUG == True:
         print ("Claimed interface ok")
@@ -143,7 +194,7 @@ try:
     sendit = device.write(ep_write_addr, msg)
 except:
     print ("Error: sending request to device")
-    exit(4)
+    exit(0)
 
 if DEBUG == True:
     print ("Sending request went ok")
@@ -153,7 +204,7 @@ try:
     data = device.read(ep_read_addr, 0x8)
 except:
     print ("Error: reading data from device")
-    exit(5)
+    exit(0)
 else:
     if DEBUG == True:
         print ("Data returned from device =", data)
@@ -161,9 +212,10 @@ else:
 # Decode the temperature and humidity
 
 if CELSIUS == True:
-    temperature = round( ( (data[2] * 256) + data[3] ) / 100, 1 )
+    temperature = round( ( twos_complement( (data[2] * 256) + data[3],16 ) ) / 100, 1 )
+    
 else:
-    temperature =  round( ( (data[2] * 256) + data[3] ) / 100 * 9/5 + 32, 1 )
+    temperature = round( ( twos_complement( (data[2] * 256) + data[3],16 ) ) / 100 * 9/5 + 32, 1 )
     
 humidity = int( ( (data[4] * 256) + data[5] ) / 100 )
 
@@ -181,12 +233,27 @@ if NOSYMBOLS == False:
 
 if DEBUG == True:
     print ("")
-    print ("------------")
-    print (temperature, humidity)
-    print ("------------")
+    if RAW == True:
+        dashes = 50
+    else:
+        dashes = 12
+    print ("-" * dashes)
+    print (temperature, humidity, end="")
+
+    if RAW == True:
+        print ("", byte_array_to_hex_string(data))
+    else:
+        print ("")
+
+    print ("-" * dashes)
     print ("")
 else:    
-    print (temperature, humidity)
+    print (temperature, humidity, end="")
+
+    if RAW == True:
+        print ("", byte_array_to_hex_string(data))
+    else:
+        print ("")
 
 # Release the usb resources
 
@@ -209,6 +276,6 @@ if REATTACH:
     result = device.attach_kernel_driver(1)
     if result != None:
         print ("Error: reattaching the kernel driver to device")
-        exit(6)
+        exit(0)
 
 exit(0)
