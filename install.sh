@@ -1,4 +1,4 @@
-#!/bin/bash
+##!/bin/bash
 
 echo
 echo This script install the prerequisits for temperhum.py on a Raspberry Pi and copies it to /usr/local/bin
