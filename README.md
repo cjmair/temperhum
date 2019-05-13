@@ -19,7 +19,7 @@ This should return the temperature, in Celsius and the humidity, in the format b
 ```bash
   23.9C 38%
 ```
-## Optons
+## Optoins
 Various options can be given on the command line, see the --help option listing below
 ```
   temperhum.py --help
