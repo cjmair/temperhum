@@ -36,7 +36,7 @@ Various options can be given on the command line, see the --help option listing 
   --reattach      if the usb device is attached to a kernel driver, default is to detach it,
                   and leave it that way, this option forces a reattach to the kernel driver on exit
 ```
-example
+for example
 ```
   temperhum.py --f --nosymbols
 ```
