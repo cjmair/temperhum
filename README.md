@@ -2,7 +2,7 @@
 Python 3 program to read temperature and humidity from a TEMPerHUM USB sensor on a Raspberry Pi
 
 ## Installation
-In a Raspberry Pi, terminal or ssh session run the following commands, you can ignore the first one,
+In a Raspberry Pi, terminal or ssh session, run the following commands, you can ignore the first one,
 if you already have git installed.
 ```bash
   sudo apt-get install git
